@@ -5,7 +5,18 @@ build/
 dist/
 wheels/
 *.egg-info
+.cache
 
-# Virtual environments
+# venv
 .venv
 .envrc
+
+# testing
+htmlcov
+_coverage
+.coverage
+.coverage.*
+.tox/*
+
+# documentation
+docs/_build/*

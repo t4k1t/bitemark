@@ -1,7 +1,98 @@
 [project]
-name = "recipeml"
+name = "bitemark"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.13"
+description = "Reference implementation for `BiteMark` - a markup language for recipes based on Markdown."
+authors = [{ name = "Thomas Kager", email = "t4k1t+dev@protonmail.com" }]
+requires-python = ">= 3.11"
 dependencies = []
+readme = "README.md"
+license = "MIT"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+
+[project.urls]
+Documentation = "https://github.com/t4k1t/bitemark#readme"
+Issues = "https://github.com/t4k1t/bitemark/issues"
+Source = "https://github.com/t4k1t/bitemark"
+
+[project.scripts]
+"bitemark" = "bitemark.main:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+  "ruff>=0.6.4",
+  "pytest>=8.3.2",
+  "coverage>=7.6.1",
+  "basedpyright>=1.17.2",
+  "pytest-subprocess>=1.5.3",
+  "pyinstrument>=5.0.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bitemark"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/bitemark", "tests", "CHANGELOG.md", "uv.lock"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+  "A",
+  "B",
+  "C4",
+  "D",
+  "DTZ",
+  "E",
+  "EM",
+  "F",
+  "G",
+  "I",
+  "ICN",
+  "LOG",
+  "PIE",
+  "PT",
+  "PTH",
+  "S",
+  "SIM",
+  "T20",
+  "UP",
+  "W",
+]
+ignore = ["D203", "D212"]
+fixable = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*" = ["S101", "PT006"]
+"**/__init__.py" = ["D104"]
+"src/bitemark/errors.py" = ["D107"]
+"src/bitemark/__main__.py" = ["D100"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.basedpyright]
+ignore = ["tests"]
+reportAny = false
+reportExplicitAny = false
+reportImplicitOverride = false
+reportMissingSuperCall = false
+reportMissingTypeStubs = false
+reportUnusedCallResult = false
+
+[tool.coverage.run]
+source = ["src/bitemark"]
+omit = ["src/bitemark/__main__.py"]
