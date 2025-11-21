@@ -16,7 +16,7 @@ I was looking for a uniform way to store my collected recipes in digital form. S
 
 ## Why not JSON-LD?
 
-Many websites expose recipe metadata in JSON-LD format which is great for extracting the data, but while this if technically human-readable, it's not a great experience.
+Many websites expose recipe metadata in JSON-LD format which is great for extracting the data, but while this is technically human-readable, it's not a great experience.
 
 ## Specification
 
