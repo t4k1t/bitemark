@@ -11,6 +11,7 @@ class Ingredient:
     """Struct describing an ingredient."""
 
     name: str
+    # TODO: Handle fractions (e.g. 3/4 cup)
     quantity: float
     unit: str
 
@@ -88,6 +89,7 @@ class RecipeInterpreter:
         "milk": 1.03,
         "water": 1.0,
         "oil": 0.92,
+        "oats": 0.41,
     }
 
     def __init__(self, recipe_text: str):
