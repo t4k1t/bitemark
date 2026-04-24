@@ -9,12 +9,12 @@ Reference implementation for `BiteMark` - a markup language for recipes based on
 ## Why
 
 I was looking for a uniform way to store my collected recipes in digital form. Since I've already stored my notes in Markdown format for many years, it seemed like a reasonable choice for recipes too:
-1. It's human readable - so are recipes!
+1. It's human-readable - so are recipes!
 2. It's structured - so are recipes!
 3. It's easily extensible
-4. It's straighforward to format text and lists
+4. It's straightforward to format text and lists
 
-## Why not JSON-LD?
+## Why Not JSON-LD?
 
 Many websites expose recipe metadata in JSON-LD format which is great for extracting the data, but while this if technically human-readable, it's not a great experience.
 
@@ -92,3 +92,10 @@ Here is an example for common metadata:
   ```
 
 There are no formal restrictions on which keys can be used in metadata.
+
+## Goals of the Default Implementation
+
+1. Implement specification as completely as possible
+2. Provide test cases to test interpreter against
+3. Act as testbed for changes to the BiteMark spec
+4. Avoid dependencies outside the Python Standard Library
