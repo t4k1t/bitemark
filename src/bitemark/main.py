@@ -2,57 +2,12 @@
 
 import re
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
+from bitemark.models import Ingredient, Instruction
+from bitemark.util import extract_recipes_from_file
 
-@dataclass
-class Ingredient:
-    """Struct describing an ingredient."""
-
-    name: str
-    quantity: float
-    unit: str
-
-
-@dataclass
-class Instruction:
-    """Struct describing an instruction step."""
-
-    step: int
-    description: str
-
-
-def extract_recipes_from_file(filepath: Path) -> list[str]:
-    with Path.open(filepath, encoding="utf-8") as f:
-        lines = f.readlines()
-
-    recipes = []
-    current_recipe = []
-    in_recipe = False
-    recipe_header_level = None
-
-    header_pattern = re.compile(r"^(#{1,5})\s+")
-    for line in lines:
-        match = header_pattern.match(line)
-        if match:
-            level = len(match.group(1))
-            if not in_recipe:
-                in_recipe = True
-                recipe_header_level = level
-                current_recipe = [line.rstrip("\n")]
-                continue
-            elif level <= recipe_header_level:
-                if current_recipe:
-                    recipes.append("\n".join(current_recipe))
-                recipe_header_level = level
-                current_recipe = [line.rstrip("\n")]
-                continue
-        if in_recipe:
-            current_recipe.append(line.rstrip("\n"))
-    if current_recipe:
-        recipes.append("\n".join(current_recipe))
-    return recipes
+# TODO: Refactor for readability
 
 
 class RecipeInterpreter:
@@ -88,10 +43,12 @@ class RecipeInterpreter:
         "milk": 1.03,
         "water": 1.0,
         "oil": 0.92,
+        "oats": 0.41,
     }
 
     def __init__(self, recipe_text: str):
         """Initialize RecipeInterpreter with recipe text."""
+        self.title: str | None = None
         self.recipe_text = recipe_text
         self.metadata = self.extract_metadata()
         self.ingredients: list[Ingredient] = []
@@ -117,9 +74,11 @@ class RecipeInterpreter:
         lines = text.split("\n")
         section = None
         for line in lines:
-            if line.startswith("## Ingredients"):
+            if line.startswith("# "):
+                self.title = line.lstrip("#").strip()
+            elif line.startswith("## Ingredients"):
                 section = "ingredients"
-            elif line.startswith("## Instructions"):
+            elif line.startswith("## Instructions") or line.startswith("## Directions"):
                 section = "instructions"
             elif section == "ingredients":
                 self.parse_ingredient(line)
@@ -209,9 +168,10 @@ class RecipeInterpreter:
             "unit": target_unit,
         }
 
-    def get_preferred_unit(self, ingredient: str):
+    # TODO: Fix naming between system and target_unit
+    def get_preferred_unit(self, ingredient: str, system: str or None = None):
         # Use metadata to determine system
-        system = self.metadata.get("units", "metric").lower()
+        system = system or self.metadata.get("units", "metric").lower()
         # Simple heuristic: treat water, milk, oil as liquids
         liquids = ["water", "milk", "oil"]
         name = ingredient.name.lower()
@@ -228,7 +188,7 @@ class RecipeInterpreter:
         print("Ingredients:")
         for ingredient in self.ingredients:
             # Determine preferred unit if not specified
-            unit = target_unit or self.get_preferred_unit(ingredient)
+            unit = self.get_preferred_unit(ingredient, target_unit)
             display_ingredient = ingredient
             if unit:
                 converted = self.convert_units(ingredient.name, unit)
@@ -251,20 +211,45 @@ class RecipeInterpreter:
 
 
 def cli():
-    if len(sys.argv) < 2:
+    unit = None
+    argv = sys.argv[1:]
+    if len(sys.argv) < 1:
         print("Usage: bitemark <markdown_file>")
         exit(1)
 
-    recipes = extract_recipes_from_file(Path(sys.argv[1]))
+    if len(sys.argv) > 4:
+        print("Error: Too many arguments provided")
+        exit(1)
+
+    index_unit_argv = None
+    for index, value in enumerate(argv):
+        if value == "-u":
+            index_unit_argv = index
+
+    if index_unit_argv:
+        if index_unit_argv + 1 >= len(argv):
+            print("Error: Missing unit after -u flag")
+            exit(1)
+
+        unit = argv.pop(index_unit_argv + 1)
+        del argv[index_unit_argv]
+
+    if len(argv) != 1:
+        print("Error: Invalid arguments: ", sys.argv[1:])
+        exit(1)
+
+    recipes = extract_recipes_from_file(Path(argv[0]))
     if not recipes:
         print("No recipes found in the file.")
         exit(1)
 
     for idx, recipe_text in enumerate(recipes, 1):
-        print(f"\nRecipe {idx}:")
+        prefix = f"\nRecipe {idx}"
         interpreter = RecipeInterpreter(recipe_text)
+        title = f' "{interpreter.title}"' if interpreter.title else ""
+        print(f"{prefix}{title}:")
         # Use units from metadata if present
-        interpreter.display_recipe(target_unit=None)
+        interpreter.display_recipe(target_unit=unit)
 
 
 if __name__ == "__main__":
