@@ -1,28 +1,34 @@
 alias cov := coverage
 alias ta := testall
 
-# run unit tests with coverage generation
-@test:
-    uv run coverage run -m pytest -m "not feature_notification"
+# Run unit tests with coverage generation
+@test *FLAGS:
+    uv run coverage run -m pytest -m "not feature_notification" {{FLAGS}}
 
-# run unit tests, including optional features with coverage generation
+# Run unit tests, including optional features with coverage generation
 @testall:
     uv run coverage run -m pytest
 
-# generate coverage report
+# Generate coverage report
 @coverage REPORT_TYPE='report':
     uv run coverage {{REPORT_TYPE}}
 
-# clean dist
+# Lint source
+@lint:
+    uv run --frozen ruff check src/
+    uv run --frozen ty check src/
+
+# Clean dist
 @clean:
     echo "Cleaning up existing artifacts…"
     rm -f "dist/*.{tar.gz,whl}"
 
-# build dist
+# Build dist
 @build: clean
     echo "Building dist…"
     uv build
 
+# Upgrade dependencies
 @upgrade:
     echo "Upgrading dependencies…"
     uv lock --upgrade

@@ -1,5 +1,5 @@
 import sys
 
-import bitemark
+from bitemark.main import cli
 
-sys.exit(bitemark.main())
+sys.exit(cli())

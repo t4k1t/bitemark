@@ -8,10 +8,12 @@ from pathlib import Path
 from bitemark.models import Ingredient, Instruction
 from bitemark.util import extract_recipes_from_file
 
-
 logger = logging.getLogger(__name__)
 
+
 class RecipeInterpreter:
+    """Basic recipe interpreter."""
+
     HEADER_PATTERN = re.compile(r"^(#{1,5})\s+")
     METADATA_PATTERN = re.compile(r"^<!--(.*?)-->", re.DOTALL | re.MULTILINE)
     INGREDIENT_PATTERN = re.compile(r"- (\d+(\.\d+)?) (\w+) (.+)")
@@ -74,6 +76,7 @@ class RecipeInterpreter:
         return meta
 
     def parse_recipe(self):
+        """Parse recipe text."""
         lines = self._strip_metadata(self.recipe_text).split("\n")
         section = None
 
@@ -93,6 +96,7 @@ class RecipeInterpreter:
                 self.parse_instruction(line)
 
     def parse_ingredient(self, line: str):
+        """Parse ingredients based on pattern."""
         match = self.INGREDIENT_PATTERN.match(line)
         if not match:
             return
@@ -103,6 +107,7 @@ class RecipeInterpreter:
         self.ingredients.append(Ingredient(name=name, quantity=quantity, unit=unit))
 
     def parse_instruction(self, line: str):
+        """Parse instructions based on pattern."""
         match = self.INSTRUCTION_PATTERN.match(line)
         if not match:
             return
@@ -112,6 +117,7 @@ class RecipeInterpreter:
         self.instructions.append(Instruction(step=step_number, description=description))
 
     def convert_units(self, ingredient_name: str, target_unit: str):
+        """Convert between ingredient units."""
         target_unit = target_unit.lower()
         ingredient = next(
             (ing for ing in self.ingredients if ing.name.lower() == ingredient_name.lower()),
@@ -156,7 +162,7 @@ class RecipeInterpreter:
         }
 
     def get_preferred_unit(self, ingredient: Ingredient, system: str | None = None):
-        # Use metadata to determine system
+        """Get preferred unit based on metadata. Falls back to 'metric' units."""
         unit_system = (system or self.metadata.get("units", "metric")).lower()
         name = ingredient.name.lower()
         is_liquid = self._is_liquid_ingredient(name)
@@ -169,6 +175,7 @@ class RecipeInterpreter:
         return ingredient.unit
 
     def display_recipe(self, target_unit: str | None = None):
+        """Print parsed recipe to standard output."""
         print("Ingredients:")
         for ingredient in self.ingredients:
             # Determine preferred unit if not specified
@@ -194,10 +201,12 @@ class RecipeInterpreter:
         try:
             target = float(target_servings)
         except (TypeError, ValueError) as exc:
-            raise ValueError("target_servings must be a positive number") from exc
+            msg = "target_servings must be a positive number"
+            raise ValueError(msg) from exc
 
         if target <= 0:
-            raise ValueError("target_servings must be a positive number")
+            msg = "target_servings must be a positive number"
+            raise ValueError(msg)
 
         current_servings_raw = self.metadata.get("servings")
         try:
@@ -235,7 +244,7 @@ class RecipeInterpreter:
     def _parse_section(self, line: str) -> str | None:
         if line.startswith("## Ingredients"):
             return "ingredients"
-        if line.startswith("## Instructions") or line.startswith("## Directions"):
+        if line.startswith(("## Instructions", "## Directions")):
             return "instructions"
         return None
 
@@ -288,6 +297,7 @@ class RecipeInterpreter:
 
 
 def cli():
+    """Command line interface."""
     unit = None
     servings = None
     usage = "Usage: bitemark [-u UNIT|--unit UNIT] [-s SERVINGS|--servings SERVINGS] <markdown_file>"

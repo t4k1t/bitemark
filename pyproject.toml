@@ -39,6 +39,7 @@ dev = [
   "basedpyright>=1.17.2",
   "pytest-subprocess>=1.5.3",
   "pyinstrument>=5.0.1",
+  "ty>=0.0.58",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -81,6 +82,7 @@ fixable = ["ALL"]
 "**/__init__.py" = ["D104"]
 "src/bitemark/errors.py" = ["D107"]
 "src/bitemark/__main__.py" = ["D100"]
+"src/bitemark/main.py" = ["T201"]
 
 [tool.ruff.format]
 quote-style = "double"
