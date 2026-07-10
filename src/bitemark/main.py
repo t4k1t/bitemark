@@ -1,11 +1,15 @@
 """Standard implementation of the BiteMark recipe interpreter."""
 
+import logging
 import re
 import sys
 from pathlib import Path
 
 from bitemark.models import Ingredient, Instruction
 from bitemark.util import extract_recipes_from_file
+
+
+logger = logging.getLogger(__name__)
 
 class RecipeInterpreter:
     HEADER_PATTERN = re.compile(r"^(#{1,5})\s+")
@@ -45,6 +49,7 @@ class RecipeInterpreter:
         "oats": 0.41,
     }
     LIQUID_KEYWORDS = ("water", "milk", "oil")
+    FALLBACK_SERVINGS = 2.0
 
     def __init__(self, recipe_text: str):
         """Initialize RecipeInterpreter with recipe text."""
@@ -185,8 +190,38 @@ class RecipeInterpreter:
             print(f"{instruction.step}. {instruction.description}")
 
     def scale_ingredients(self, target_servings):
-        # TODO: Implement scaling logic here
-        pass
+        """Scale ingredients based on number of servings."""
+        try:
+            target = float(target_servings)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("target_servings must be a positive number") from exc
+
+        if target <= 0:
+            raise ValueError("target_servings must be a positive number")
+
+        current_servings_raw = self.metadata.get("servings")
+        try:
+            current_servings = float(current_servings_raw)
+            if current_servings <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            logger.warning(
+                "Invalid or missing recipe servings metadata (%r); falling back to 2 servings.",
+                current_servings_raw,
+            )
+            current_servings = self.FALLBACK_SERVINGS
+
+        scale_factor = target / current_servings
+
+        self.ingredients = [
+            Ingredient(
+                name=ingredient.name,
+                quantity=ingredient.quantity * scale_factor,
+                unit=ingredient.unit,
+            )
+            for ingredient in self.ingredients
+        ]
+        self.metadata["servings"] = str(target_servings)
 
     def _strip_metadata(self, text: str) -> str:
         return re.sub(r"^<!--.*?-->\n?", "", text, flags=re.DOTALL | re.MULTILINE)
@@ -254,30 +289,43 @@ class RecipeInterpreter:
 
 def cli():
     unit = None
-    argv = sys.argv[1:]
-    if len(sys.argv) < 1:
-        print("Usage: bitemark <markdown_file>")
-        exit(1)
+    servings = None
+    usage = "Usage: bitemark [-u UNIT|--unit UNIT] [-s SERVINGS|--servings SERVINGS] <markdown_file>"
+    raw_argv = sys.argv[1:]
+    argv = []
 
-    if len(sys.argv) > 4:
-        print("Error: Too many arguments provided")
-        exit(1)
+    index = 0
+    while index < len(raw_argv):
+        value = raw_argv[index]
+        if value in ("-u", "--unit"):
+            if index + 1 >= len(raw_argv):
+                print("Error: Missing unit after unit flag")
+                print(usage)
+                exit(1)
+            unit = raw_argv[index + 1]
+            index += 2
+            continue
 
-    index_unit_argv = None
-    for index, value in enumerate(argv):
-        if value == "-u":
-            index_unit_argv = index
+        if value in ("-s", "--servings"):
+            if index + 1 >= len(raw_argv):
+                print("Error: Missing servings after servings flag")
+                print(usage)
+                exit(1)
+            servings = raw_argv[index + 1]
+            index += 2
+            continue
 
-    if index_unit_argv is not None:
-        if index_unit_argv + 1 >= len(argv):
-            print("Error: Missing unit after -u flag")
+        if value.startswith("-"):
+            print(f"Error: Unknown flag {value}")
+            print(usage)
             exit(1)
 
-        unit = argv.pop(index_unit_argv + 1)
-        del argv[index_unit_argv]
+        argv.append(value)
+        index += 1
 
     if len(argv) != 1:
         print("Error: Invalid arguments: ", sys.argv[1:])
+        print(usage)
         exit(1)
 
     recipes = extract_recipes_from_file(Path(argv[0]))
@@ -288,6 +336,12 @@ def cli():
     for idx, recipe_text in enumerate(recipes, 1):
         prefix = f"\nRecipe {idx}"
         interpreter = RecipeInterpreter(recipe_text)
+        if servings is not None:
+            try:
+                interpreter.scale_ingredients(servings)
+            except ValueError as exc:
+                print(f"Error: {exc}")
+                exit(1)
         title = f' "{interpreter.title}"' if interpreter.title else ""
         print(f"{prefix}{title}:")
         # Use units from metadata if present

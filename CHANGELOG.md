@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added CLI servings override via `-s` / `--servings`.
+- Added unit tests for ingredient scaling behavior.
+
+### Changed
+
+- Refactored code for readability.
+- Implemented ingredient scaling by target servings
+
 ### Fixed
 
 - Typo in Readme

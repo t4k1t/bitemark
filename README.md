@@ -93,6 +93,36 @@ Here is an example for common metadata:
 
 There are no formal restrictions on which keys can be used in metadata.
 
+However, some keys have special meaning in the reference implementation:
+
+- `servings`: Used as the baseline for ingredient scaling when `-s` / `--servings` is used.
+- `units`: Used as the default unit system for display and conversion (`metric`, `american`, `british`) when no CLI unit override is passed.
+
+If `servings` is missing or invalid, scaling falls back to a baseline of `2` servings.
+
+### CLI Usage
+
+Run the interpreter with:
+
+```bash
+bitemark [-u UNIT|--unit UNIT] [-s SERVINGS|--servings SERVINGS] <markdown_file>
+```
+
+Options:
+
+- `-u`, `--unit`: Override display unit system (for example `metric`, `american`, or `british`).
+- `-s`, `--servings`: Scale ingredient quantities to the requested servings.
+
+Examples:
+
+```bash
+bitemark examples/recipes/milk.md
+bitemark -s 6 examples/recipes/milk.md
+bitemark --unit american --servings 2 examples/recipes/milk.md
+```
+
+Scaling uses metadata `servings` as the baseline when present.
+
 ## Goals of the Default Implementation
 
 1. Implement specification as completely as possible
