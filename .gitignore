@@ -20,3 +20,6 @@ _coverage
 
 # documentation
 docs/_build/*
+
+# utils
+release.sh
