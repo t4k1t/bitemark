@@ -3,6 +3,7 @@
 import logging
 import re
 import sys
+from fractions import Fraction
 from pathlib import Path
 
 from bitemark.models import Ingredient, Instruction
@@ -16,7 +17,9 @@ class RecipeInterpreter:
 
     HEADER_PATTERN = re.compile(r"^(#{1,5})\s+")
     METADATA_PATTERN = re.compile(r"^<!--(.*?)-->", re.DOTALL | re.MULTILINE)
-    INGREDIENT_PATTERN = re.compile(r"- (\d+(\.\d+)?) (\w+) (.+)")
+    QUANTITY_PART_PATTERN = r"(?:\d+\s+\d+/\d+|\d+/\d+|\d+(?:\.\d+)?)"
+    QUANTITY_PATTERN = rf"{QUANTITY_PART_PATTERN}(?:\s*-\s*{QUANTITY_PART_PATTERN})?"
+    INGREDIENT_PATTERN = re.compile(rf"^- (?P<quantity>{QUANTITY_PATTERN})(?: (?P<rest>.+))?$")
     INSTRUCTION_PATTERN = re.compile(r"(\d+)\. (.+)")
     VOLUME_UNITS = {
         "ml": 1,
@@ -101,10 +104,22 @@ class RecipeInterpreter:
         if not match:
             return
 
-        quantity = float(match.group(1))
-        unit = match.group(3)
-        name = match.group(4)
-        self.ingredients.append(Ingredient(name=name, quantity=quantity, unit=unit))
+        quantities = self._parse_quantity_range(match.group("quantity"))
+        if quantities is None:
+            return
+
+        rest = (match.group("rest") or "").strip()
+        if not rest:
+            return
+
+        unit, name = self._parse_unit_and_name(rest)
+        if not name:
+            return
+
+        quantity, quantity_max = quantities
+        self.ingredients.append(
+            Ingredient(name=name, quantity=quantity, unit=unit, quantity_max=quantity_max),
+        )
 
     def parse_instruction(self, line: str):
         """Parse instructions based on pattern."""
@@ -128,37 +143,27 @@ class RecipeInterpreter:
 
         unit = ingredient.unit.lower()
         qty = ingredient.quantity
+        qty_max = ingredient.quantity_max
         name_key = ingredient.name.lower()
 
         is_liquid = self._is_liquid_ingredient(name_key)
 
-        is_volume = unit in self.VOLUME_UNITS
-        is_mass = unit in self.MASS_UNITS
-        target_is_volume = target_unit in self.VOLUME_UNITS
-        target_is_mass = target_unit in self.MASS_UNITS
-
-        if is_volume and target_is_volume:
-            converted_qty = self._convert_volume_to_volume(qty, unit, target_unit)
-        elif is_mass and target_is_mass:
-            converted_qty = self._convert_mass_to_mass(qty, unit, target_unit)
-        elif is_volume and target_is_mass:
-            if is_liquid:
-                return None
-            converted_qty = self._convert_volume_to_mass(qty, unit, target_unit, name_key)
-        elif is_mass and target_is_volume:
-            if is_liquid:
-                return None
-            converted_qty = self._convert_mass_to_volume(qty, unit, target_unit, name_key)
-        else:
-            return None
+        converted_qty = self._convert_quantity(qty, unit, target_unit, name_key, is_liquid)
 
         if converted_qty is None:
             return None
+
+        converted_qty_max = None
+        if qty_max is not None:
+            converted_qty_max = self._convert_quantity(qty_max, unit, target_unit, name_key, is_liquid)
+            if converted_qty_max is None:
+                return None
 
         return {
             "name": ingredient.name,
             "quantity": converted_qty,
             "unit": target_unit,
+            "quantity_max": converted_qty_max,
         }
 
     def get_preferred_unit(self, ingredient: Ingredient, system: str | None = None):
@@ -188,10 +193,14 @@ class RecipeInterpreter:
                         name=converted["name"],
                         quantity=converted["quantity"],
                         unit=converted["unit"],
+                        quantity_max=converted["quantity_max"],
                     )
-            qty = round(display_ingredient.quantity, 2)
+            qty_text = self._format_quantity_display(display_ingredient.quantity, display_ingredient.quantity_max)
             unit = display_ingredient.unit
-            print(f"- {qty} {unit} {display_ingredient.name}")
+            if unit:
+                print(f"- {qty_text} {unit} {display_ingredient.name}")
+            else:
+                print(f"- {qty_text} {display_ingredient.name}")
         print("\nInstructions:")
         for instruction in self.instructions:
             print(f"{instruction.step}. {instruction.description}")
@@ -227,10 +236,48 @@ class RecipeInterpreter:
                 name=ingredient.name,
                 quantity=ingredient.quantity * scale_factor,
                 unit=ingredient.unit,
+                quantity_max=(
+                    ingredient.quantity_max * scale_factor if ingredient.quantity_max is not None else None
+                ),
             )
             for ingredient in self.ingredients
         ]
         self.metadata["servings"] = str(target_servings)
+
+    def _parse_quantity_range(self, quantity_text: str) -> tuple[float, float | None] | None:
+        parts = [part.strip() for part in quantity_text.split("-", maxsplit=1)]
+        if len(parts) == 1:
+            parsed_quantity = self._parse_single_quantity(parts[0])
+            if parsed_quantity is None:
+                return None
+            return parsed_quantity, None
+
+        start = self._parse_single_quantity(parts[0])
+        end = self._parse_single_quantity(parts[1])
+        if start is None or end is None:
+            return None
+        return start, end
+
+    def _parse_single_quantity(self, quantity_text: str) -> float | None:
+        text = quantity_text.strip()
+        if not text:
+            return None
+
+        try:
+            if " " in text:
+                whole, fraction = text.split(maxsplit=1)
+                return float(whole) + float(Fraction(fraction))
+            if "/" in text:
+                return float(Fraction(text))
+            return float(text)
+        except (ValueError, ZeroDivisionError):
+            return None
+
+    def _parse_unit_and_name(self, ingredient_text: str) -> tuple[str, str]:
+        parts = ingredient_text.split(maxsplit=1)
+        if len(parts) == 1:
+            return "", parts[0]
+        return parts[0], parts[1]
 
     def _strip_metadata(self, text: str) -> str:
         return re.sub(r"^<!--.*?-->\n?", "", text, flags=re.DOTALL | re.MULTILINE)
@@ -250,6 +297,46 @@ class RecipeInterpreter:
 
     def _is_liquid_ingredient(self, ingredient_name: str) -> bool:
         return any(liquid in ingredient_name for liquid in self.LIQUID_KEYWORDS)
+
+    def _convert_quantity(
+        self,
+        quantity: float,
+        source_unit: str,
+        target_unit: str,
+        ingredient_name: str,
+        is_liquid: bool,
+    ) -> float | None:
+        is_volume = source_unit in self.VOLUME_UNITS
+        is_mass = source_unit in self.MASS_UNITS
+        target_is_volume = target_unit in self.VOLUME_UNITS
+        target_is_mass = target_unit in self.MASS_UNITS
+
+        if is_volume and target_is_volume:
+            return self._convert_volume_to_volume(quantity, source_unit, target_unit)
+        if is_mass and target_is_mass:
+            return self._convert_mass_to_mass(quantity, source_unit, target_unit)
+        if is_volume and target_is_mass:
+            if is_liquid:
+                return None
+            return self._convert_volume_to_mass(quantity, source_unit, target_unit, ingredient_name)
+        if is_mass and target_is_volume:
+            if is_liquid:
+                return None
+            return self._convert_mass_to_volume(quantity, source_unit, target_unit, ingredient_name)
+        return None
+
+    def _format_quantity_display(self, quantity: float, quantity_max: float | None = None) -> str:
+        minimum = self._format_number(quantity)
+        if quantity_max is None:
+            return minimum
+        maximum = self._format_number(quantity_max)
+        return f"{minimum}-{maximum}"
+
+    def _format_number(self, value: float) -> str:
+        rounded = round(value, 2)
+        if rounded == int(rounded):
+            return str(int(rounded))
+        return f"{rounded:.2f}".rstrip("0").rstrip(".")
 
     def _convert_volume_to_volume(self, quantity: float, source_unit: str, target_unit: str) -> float:
         base_qty = quantity * self.VOLUME_UNITS[source_unit]

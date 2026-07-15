@@ -7,19 +7,27 @@ import pytest
 from bitemark.main import RecipeInterpreter
 
 
-def _recipe_text(metadata_lines: list[str] | None = None) -> str:
+def _recipe_text(
+    metadata_lines: list[str] | None = None,
+    ingredient_lines: list[str] | None = None,
+    instruction_lines: list[str] | None = None,
+) -> str:
     metadata = ""
     if metadata_lines:
         metadata_content = "\n".join(metadata_lines)
         metadata = f"<!--\n{metadata_content}\n-->\n"
 
+    ingredients = ingredient_lines or ["- 100 g flour", "- 50 g sugar"]
+    instructions = instruction_lines or ["1. Mix ingredients."]
+    ingredients_text = "\n".join(ingredients)
+    instructions_text = "\n".join(instructions)
+
     return (
         f"{metadata}# Pancakes\n\n"
         "## Ingredients\n\n"
-        "- 100 g flour\n"
-        "- 50 g sugar\n\n"
+        f"{ingredients_text}\n\n"
         "## Instructions\n\n"
-        "1. Mix ingredients.\n"
+        f"{instructions_text}\n"
     )
 
 
@@ -48,3 +56,60 @@ class TestScaleIngredients:
 
         with pytest.raises(ValueError, match="target_servings must be a positive number"):
             interpreter.scale_ingredients(0)
+
+
+class TestQuantityParsingAndDisplay:
+    def test_parses_fraction_quantity(self):
+        interpreter = RecipeInterpreter(_recipe_text(ingredient_lines=["- 1/2 cup sugar"]))
+
+        ingredient = interpreter.ingredients[0]
+        assert ingredient.quantity == pytest.approx(0.5)
+        assert ingredient.quantity_max is None
+        assert ingredient.unit == "cup"
+        assert ingredient.name == "sugar"
+
+    def test_parses_mixed_number_quantity(self):
+        interpreter = RecipeInterpreter(_recipe_text(ingredient_lines=["- 1 1/2 tbsp oil"]))
+
+        ingredient = interpreter.ingredients[0]
+        assert ingredient.quantity == pytest.approx(1.5)
+        assert ingredient.quantity_max is None
+        assert ingredient.unit == "tbsp"
+        assert ingredient.name == "oil"
+
+    def test_parses_quantity_range(self):
+        interpreter = RecipeInterpreter(_recipe_text(ingredient_lines=["- 1-2 eggs"]))
+
+        ingredient = interpreter.ingredients[0]
+        assert ingredient.quantity == pytest.approx(1.0)
+        assert ingredient.quantity_max == pytest.approx(2.0)
+        assert ingredient.unit == ""
+        assert ingredient.name == "eggs"
+
+    def test_scales_quantity_range(self):
+        interpreter = RecipeInterpreter(
+            _recipe_text(
+                metadata_lines=["servings: 2"],
+                ingredient_lines=["- 1-2 eggs"],
+            ),
+        )
+
+        interpreter.scale_ingredients(4)
+
+        ingredient = interpreter.ingredients[0]
+        assert ingredient.quantity == pytest.approx(2.0)
+        assert ingredient.quantity_max == pytest.approx(4.0)
+
+    def test_displays_quantity_range(self, capsys: pytest.CaptureFixture[str]):
+        interpreter = RecipeInterpreter(
+            _recipe_text(
+                metadata_lines=["servings: 2"],
+                ingredient_lines=["- 1-2 eggs"],
+            ),
+        )
+
+        interpreter.scale_ingredients(4)
+        interpreter.display_recipe()
+
+        output = capsys.readouterr().out
+        assert "- 2-4 eggs" in output

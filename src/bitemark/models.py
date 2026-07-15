@@ -8,9 +8,9 @@ class Ingredient:
     """Struct describing an ingredient."""
 
     name: str
-    # TODO: Handle fractions (e.g. 3/4 cup)
     quantity: float
     unit: str
+    quantity_max: float | None = None
 
 
 @dataclass
