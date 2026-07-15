@@ -36,7 +36,6 @@ dev = [
   "ruff>=0.6.4",
   "pytest>=8.3.2",
   "coverage>=7.6.1",
-  "basedpyright>=1.17.2",
   "pytest-subprocess>=1.5.3",
   "pyinstrument>=5.0.1",
   "ty>=0.0.58",
@@ -87,14 +86,8 @@ fixable = ["ALL"]
 [tool.ruff.format]
 quote-style = "double"
 
-[tool.basedpyright]
-ignore = ["tests"]
-reportAny = false
-reportExplicitAny = false
-reportImplicitOverride = false
-reportMissingSuperCall = false
-reportMissingTypeStubs = false
-reportUnusedCallResult = false
+[tool.ty.src]
+exclude = ["tests"]
 
 [tool.coverage.run]
 source = ["src/bitemark"]
