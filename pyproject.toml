@@ -82,6 +82,8 @@ fixable = ["ALL"]
 "src/bitemark/errors.py" = ["D107"]
 "src/bitemark/__main__.py" = ["D100"]
 "src/bitemark/main.py" = ["T201"]
+"src/bitemark/cli.py" = ["T201"]
+"src/bitemark/interpreter.py" = ["T201"]
 
 [tool.ruff.format]
 quote-style = "double"
