@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ingredient quantity parsing now supports fractions (e.g. `1/2`) and mixed numbers (e.g. `1 1/2`).
 - Ingredient quantity parsing now supports ranges (e.g. `1-2`).
 
+### Changed
+
+- Refactored code again.
+
 ## [0.2.0] - 2026-07-14
 
 ### Added
