@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="256"
+   height="256"
+   viewBox="0 0 67.733332 67.733333"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   sodipodi:docname="logo.svg"
+   inkscape:export-filename="logo-wip2.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.45622132"
+     inkscape:cx="5.4797965"
+     inkscape:cy="260.83831"
+     inkscape:window-width="1104"
+     inkscape:window-height="990"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       id="rect3"
+       style="fill:#668000;stroke-width:10.2767;fill-opacity:1"
+       d="M 3.3801554 3.3801554 L 3.3801554 13.323218 L 10.205579 13.323218 C 14.767746 13.323218 18.194293 14.193325 20.484538 15.933911 C 22.793104 17.656175 23.947375 20.239298 23.947375 23.683826 C 23.947375 26.322188 23.269733 28.38335 21.913908 29.867428 C 20.558084 31.351507 18.569971 32.213065 15.949931 32.451249 C 19.082985 32.762723 21.437379 33.816228 23.013066 35.61178 C 24.607077 37.407331 25.403617 39.917922 25.403617 43.142586 C 25.403617 47.100129 24.21308 49.966899 21.831226 51.744128 C 19.449372 53.521358 15.573912 54.410116 10.205579 54.410116 L 3.3801554 54.410116 L 3.3801554 64.353178 L 64.353178 64.353178 L 64.353178 3.3801554 L 3.3801554 3.3801554 z M 29.801282 13.377995 L 39.47511 13.377995 L 44.367318 31.37948 L 49.23162 13.377995 L 58.960742 13.377995 L 58.960742 54.410116 L 51.979773 54.410116 L 51.979773 21.540804 L 47.637402 39.486995 L 41.178882 39.486995 L 36.781734 21.540804 L 36.781734 54.410116 L 29.801282 54.410116 L 29.801282 13.377995 z " />
+  </g>
+</svg>

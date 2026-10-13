@@ -4,6 +4,8 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/bitemark.svg)](https://pypi.org/project/bitemark)
 [![codecov](https://codecov.io/gh/t4k1t/bitemark/graph/badge.svg?token=Y5D4KX42LL)](https://codecov.io/gh/t4k1t/bitemark)
 
+<img heihgt="128" alt="BiteMark Logo" src="assets/bitemark.png" align="left">
+
 Reference implementation for `BiteMark` - a markup language for recipes based on Markdown.
 
 ## Why
